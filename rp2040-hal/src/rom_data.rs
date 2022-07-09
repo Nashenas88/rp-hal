@@ -581,6 +581,49 @@ pub mod float_funcs {
         /// Converts an f32 to an f64.
         0x7c float_to_double(v: f32) -> f64;
     }
+
+    macro_rules! make_functions_v3 {
+        (
+            $(
+                $(#[$outer:meta])*
+                $offset:literal $name:ident (
+                    $( $aname:ident : $aty:ty ),*
+                ) -> $ret:ty;
+            )*
+        ) => {
+            $(
+                declare_rom_function! {
+                    $(#[$outer])*
+                    fn $name( $( $aname : $aty ),* ) -> $ret {
+                        if $crate::rom_data::rom_version_number() < 3 {
+                            panic!(
+                                "Floating point function requires V3 bootrom (found: V{})",
+                                $crate::rom_data::rom_version_number()
+                            );
+                        }
+                        let table: *const usize = $crate::rom_data::soft_float_table();
+                        unsafe {
+                            // This is the entry in the table. Our offset is given as a
+                            // byte offset, but we want the table index (each pointer in
+                            // the table is 4 bytes long)
+                            let entry: *const usize = table.offset($offset / 4);
+                            // Read the pointer from the table
+                            core::ptr::read(entry) as *const u32
+                        }
+                    }
+                }
+            )*
+        }
+    }
+
+    make_functions_v3!(
+        /// Calculates the sine and cosine of angle. angle is in radians, and must be in the
+        /// range -128 to 128. The sine value is returned in register r0 (and is thus the official
+        /// function return value), the cosine value is returned in register r1. This method is
+        /// considerably faster than calling _fsin and _fcos separately.
+        // Note: uses previously deprecated entry 0x48.
+        0x48 fsincos(angle: f32) -> f32;
+    );
 }
 
 /// Functions using double-precision arithmetic (i.e. 'f64' in Rust terms)

@@ -104,6 +104,39 @@ where
             mode: PhantomData,
         }
     }
+
+    /// Clear all active interrupts.
+    pub fn clear_all_interrupts(&mut self) {
+        let _read = self.i2c.ic_clr_intr.read().clr_intr().bit_is_clear();
+    }
+
+    /// Get the current interrupt status.
+    pub fn get_status(&self) -> (u32, u32) {
+        (
+            self.i2c.ic_raw_intr_stat.read().bits() & 0b1111_1111_1111,
+            self.i2c.ic_intr_stat.read().bits() & 0b1111_1111_1111,
+        )
+    }
+
+    /// Disable all interrupts for this I2C line.
+    pub fn disable_interrupts(&self) {
+        self.i2c.ic_intr_mask.write(|w| {
+            // Mask all interrupts.
+            w.m_activity().enabled();
+            w.m_gen_call().enabled();
+            w.m_rd_req().enabled();
+            w.m_restart_det().enabled();
+            w.m_rx_done().enabled();
+            w.m_rx_full().enabled();
+            w.m_rx_over().enabled();
+            w.m_rx_under().enabled();
+            w.m_start_det().enabled();
+            w.m_stop_det().enabled();
+            w.m_tx_abrt().enabled();
+            w.m_tx_empty().enabled();
+            w.m_tx_over().enabled()
+        });
+    }
 }
 impl<T: Deref<Target = Block>, PINS> I2C<T, PINS, Controller> {
     fn validate(
