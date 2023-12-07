@@ -616,13 +616,22 @@ pub mod float_funcs {
         }
     }
 
+    /// The result of the [fsincos] function.
+    #[repr(C)]
+    pub struct SinCos {
+        /// Sin result of [fsincos] function.
+        pub sin: f32,
+        /// Cos result of [fsincos] function.
+        pub cos: f32,
+    }
+
     make_functions_v3!(
         /// Calculates the sine and cosine of angle. angle is in radians, and must be in the
         /// range -128 to 128. The sine value is returned in register r0 (and is thus the official
         /// function return value), the cosine value is returned in register r1. This method is
         /// considerably faster than calling _fsin and _fcos separately.
         // Note: uses previously deprecated entry 0x48.
-        0x48 fsincos(angle: f32) -> f32;
+        0x48 fsincos(angle: f32) -> crate::rom_data::float_funcs::SinCos;
     );
 }
 

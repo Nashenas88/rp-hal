@@ -5,7 +5,7 @@ use fugit::HertzU32;
 #[cfg(feature = "eh1_0_alpha")]
 use eh1_0_alpha::i2c as eh1;
 
-use super::{i2c_reserved_addr, Controller, Error, ValidPinScl, ValidPinSda, I2C};
+use super::{i2c_reserved_addr, Controller, Error, I2CIrq, ValidPinScl, ValidPinSda, I2C};
 use crate::{
     pac::{i2c0::RegisterBlock as Block, RESETS},
     resets::SubsystemReset,
@@ -105,36 +105,53 @@ where
         }
     }
 
-    /// Clear all active interrupts.
-    pub fn clear_all_interrupts(&mut self) {
-        let _read = self.i2c.ic_clr_intr.read().clr_intr().bit_is_clear();
-    }
-
-    /// Get the current interrupt status.
-    pub fn get_status(&self) -> (u32, u32) {
-        (
-            self.i2c.ic_raw_intr_stat.read().bits() & 0b1111_1111_1111,
-            self.i2c.ic_intr_stat.read().bits() & 0b1111_1111_1111,
-        )
-    }
-
-    /// Disable all interrupts for this I2C line.
-    pub fn disable_interrupts(&self) {
+    /// Disable the supplied interrupts for this I2C line.
+    pub fn disable_interrupts(&self, irqs: &[I2CIrq]) {
         self.i2c.ic_intr_mask.write(|w| {
-            // Mask all interrupts.
-            w.m_activity().enabled();
-            w.m_gen_call().enabled();
-            w.m_rd_req().enabled();
-            w.m_restart_det().enabled();
-            w.m_rx_done().enabled();
-            w.m_rx_full().enabled();
-            w.m_rx_over().enabled();
-            w.m_rx_under().enabled();
-            w.m_start_det().enabled();
-            w.m_stop_det().enabled();
-            w.m_tx_abrt().enabled();
-            w.m_tx_empty().enabled();
-            w.m_tx_over().enabled()
+            for irq in irqs {
+                match irq {
+                    I2CIrq::StartDet => {
+                        w.m_start_det().enabled();
+                    }
+                    I2CIrq::GenCall => {
+                        w.m_gen_call().enabled();
+                    }
+                    I2CIrq::RdReq => {
+                        w.m_rd_req().enabled();
+                    }
+                    I2CIrq::RestartDet => {
+                        w.m_restart_det().enabled();
+                    }
+                    I2CIrq::RxDone => {
+                        w.m_rx_done().enabled();
+                    }
+                    I2CIrq::RxFull => {
+                        w.m_rx_full().enabled();
+                    }
+                    I2CIrq::RxOver => {
+                        w.m_rx_over().enabled();
+                    }
+                    I2CIrq::RxUnder => {
+                        w.m_rx_under().enabled();
+                    }
+                    I2CIrq::StopDet => {
+                        w.m_stop_det().enabled();
+                    }
+                    I2CIrq::TxAbrt => {
+                        w.m_tx_abrt().enabled();
+                    }
+                    I2CIrq::TxEmpty => {
+                        w.m_tx_empty().enabled();
+                    }
+                    I2CIrq::TxOver => {
+                        w.m_tx_over().enabled();
+                    }
+                    I2CIrq::Activity => {
+                        w.m_activity().enabled();
+                    }
+                }
+            }
+            w
         });
     }
 }
